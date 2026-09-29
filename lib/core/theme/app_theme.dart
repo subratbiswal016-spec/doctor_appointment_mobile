@@ -54,6 +54,7 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: surfaceDark,
+      hintStyle: const TextStyle(color: Colors.white30, fontWeight: FontWeight.normal, letterSpacing: 0, fontSize: 14),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),

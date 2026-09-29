@@ -793,10 +793,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   Widget _emptyState(String title, String subtitle) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.search_off_rounded, size: 54, color: AppTheme.primaryBright),
             const SizedBox(height: 14),

@@ -107,36 +107,42 @@ class AppointmentTicketDialog extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: const BoxDecoration(
-                                    color: AppTheme.primaryWash,
-                                    shape: BoxShape.circle,
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.primaryWash,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.local_hospital_rounded, color: AppTheme.primaryBright, size: 20),
                                   ),
-                                  child: const Icon(Icons.local_hospital_rounded, color: AppTheme.primaryBright, size: 20),
-                                ),
-                                const SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'SERIAL DOCTOR APP',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.primaryBright,
-                                        letterSpacing: 1.2,
-                                      ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'SERIAL DOCTOR APP',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.primaryBright,
+                                            letterSpacing: 1.2,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const Text(
+                                          'Digital Token Ticket Pass',
+                                          style: TextStyle(fontSize: 12, color: Colors.white70),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
-                                    const Text(
-                                      'Digital Token Ticket Pass',
-                                      style: TextStyle(fontSize: 12, color: Colors.white70),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

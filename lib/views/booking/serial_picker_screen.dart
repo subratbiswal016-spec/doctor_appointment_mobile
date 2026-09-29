@@ -25,9 +25,9 @@ class _SerialPickerScreenState extends State<SerialPickerScreen> {
   bool _isProcessingPayment = false;
   Timer? _autoRefreshTimer;
 
-  final _nameController = TextEditingController(text: 'Rahul Das');
-  final _ageController = TextEditingController(text: '34');
-  final _phoneController = TextEditingController(text: '9830123456');
+  final _nameController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   @override
   void initState() {
@@ -80,6 +80,24 @@ class _SerialPickerScreenState extends State<SerialPickerScreen> {
       setState(() {
         _summary = result['summary'] ?? _summary;
         _grid = result['grid'] ?? [];
+        if (_selectedSerial != null) {
+          final token = _grid.cast<SerialToken?>().firstWhere(
+            (t) => t!.serialNumber == _selectedSerial,
+            orElse: () => null,
+          );
+          if (token == null || token.status != 'AVAILABLE') {
+            _selectedSerial = null;
+            if (silent && token != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Serial #${token.serialNumber} was just taken. Please pick another.'),
+                  backgroundColor: AppTheme.colorBooked,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        }
       });
     }
   }
@@ -87,27 +105,38 @@ class _SerialPickerScreenState extends State<SerialPickerScreen> {
   void _handlePayAndConfirm() async {
     if (_selectedSerial == null || _selectedSession == null) return;
 
+    final user = ApiService.currentUser ?? {};
+    final patientName = _nameController.text.isNotEmpty ? _nameController.text : (user['name']?.toString() ?? 'Patient');
+    final patientAge = int.tryParse(_ageController.text) ?? (user['age'] as int?) ?? 28;
+    final patientGender = user['gender']?.toString() ?? 'Male';
+    final patientPhone = _phoneController.text.isNotEmpty ? _phoneController.text : (user['phone']?.toString() ?? '');
+
     setState(() => _isProcessingPayment = true);
 
     // Step 1: Request atomic serial reservation (10-min lock)
     final reserveRes = await ApiService.reserveSerial(
       sessionId: _selectedSession!.id,
       serialNumber: _selectedSerial!,
-      patientName: _nameController.text,
-      patientAge: int.tryParse(_ageController.text) ?? 28,
-      patientGender: 'Male',
-      patientPhone: _phoneController.text,
+      patientName: patientName,
+      patientAge: patientAge,
+      patientGender: patientGender,
+      patientPhone: patientPhone,
     );
 
     if (!reserveRes['success']) {
-      setState(() => _isProcessingPayment = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('⚠️ ${reserveRes['message']}'),
-          backgroundColor: AppTheme.colorBooked,
-        ),
-      );
-      _loadGrid(_selectedSession!.id);
+      if (mounted) {
+        setState(() {
+          _isProcessingPayment = false;
+          _selectedSerial = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(reserveRes['message'] ?? 'Serial already taken'),
+            backgroundColor: AppTheme.colorBooked,
+          ),
+        );
+        _loadGrid(_selectedSession!.id);
+      }
       return;
     }
 
@@ -132,12 +161,21 @@ class _SerialPickerScreenState extends State<SerialPickerScreen> {
             doctor: widget.doctor,
             session: _selectedSession!,
             serialNumber: _selectedSerial!,
-            patientName: _nameController.text,
+            patientName: patientName,
             amount: widget.doctor.fee,
             paymentId: generatedPaymentId,
           ),
         ),
       );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment failed or hold expired. Please try again.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      _selectedSerial = null;
+      _loadGrid(_selectedSession!.id);
     }
   }
 

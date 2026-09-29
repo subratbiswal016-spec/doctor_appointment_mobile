@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/doctor.dart';
 import '../models/session.dart';
 import '../models/hospital.dart';
@@ -14,10 +15,11 @@ class ApiService {
   // Candidate host URLs for Android Emulator, LAN IP, and Desktop/Web
   static List<String> get candidateBaseUrls {
     return [
+      'https://doctor-appointment-backend-rype.onrender.com/api',
+      'http://127.0.0.1:5000/api',
+      'http://localhost:5000/api',
       'http://192.168.0.220:5000/api',
       'http://10.0.2.2:5000/api',
-      'http://localhost:5000/api',
-      'http://127.0.0.1:5000/api',
     ];
   }
 
@@ -25,12 +27,59 @@ class ApiService {
 
   static Map<String, String> get headers => {
     'Content-Type': 'application/json',
-    if (_authToken != null) 'Authorization': 'Bearer $_authToken'
-    else 'Authorization': 'Bearer sample_demo_token_2026',
+    if (_authToken != null) 'Authorization': 'Bearer $_authToken',
   };
 
   static void setToken(String token) {
     _authToken = token;
+  }
+
+  static Future<void> saveSession({
+    required String token,
+    required String role,
+    required Map<String, dynamic> user,
+    String? doctorId,
+    String? doctorName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+    await prefs.setString('auth_role', role);
+    await prefs.setString('auth_user', json.encode(user));
+    if (doctorId != null) await prefs.setString('auth_doctorId', doctorId);
+    if (doctorName != null) await prefs.setString('auth_doctorName', doctorName);
+    _authToken = token;
+    currentUser = user;
+  }
+
+  static Future<Map<String, dynamic>?> loadSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final role = prefs.getString('auth_role');
+    final userStr = prefs.getString('auth_user');
+    if (token == null || role == null || userStr == null) return null;
+
+    _authToken = token;
+    final user = json.decode(userStr) as Map<String, dynamic>;
+    currentUser = user;
+    return {
+      'token': token,
+      'role': role,
+      'user': user,
+      'doctorId': prefs.getString('auth_doctorId') ?? user['doctorId'] ?? '',
+      'doctorName': prefs.getString('auth_doctorName') ?? user['name'] ?? '',
+      'profileComplete': user['profileComplete'] ?? false,
+    };
+  }
+
+  static Future<void> clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('auth_role');
+    await prefs.remove('auth_user');
+    await prefs.remove('auth_doctorId');
+    await prefs.remove('auth_doctorName');
+    _authToken = null;
+    currentUser = null;
   }
 
   // Helper for resilient GET requests with working IP caching
@@ -39,7 +88,7 @@ class ApiService {
       try {
         final uri = Uri.parse('$_activeBaseUrl$endpointPath');
         final response = await http.get(uri, headers: headers).timeout(Duration(seconds: timeoutSeconds));
-        if (response.statusCode == 200) return response;
+        return response;
       } catch (_) {
         _activeBaseUrl = null;
       }
@@ -49,10 +98,8 @@ class ApiService {
       try {
         final uri = Uri.parse('$base$endpointPath');
         final response = await http.get(uri, headers: headers).timeout(Duration(seconds: timeoutSeconds));
-        if (response.statusCode == 200) {
-          _activeBaseUrl = base;
-          return response;
-        }
+        _activeBaseUrl = base;
+        return response;
       } catch (_) {}
     }
     return null;
@@ -64,7 +111,7 @@ class ApiService {
       try {
         final uri = Uri.parse('$_activeBaseUrl$endpointPath');
         final response = await http.post(uri, headers: headers, body: body).timeout(Duration(seconds: timeoutSeconds));
-        if (response.statusCode == 200 || response.statusCode == 201) return response;
+        return response;
       } catch (_) {
         _activeBaseUrl = null;
       }
@@ -74,10 +121,8 @@ class ApiService {
       try {
         final uri = Uri.parse('$base$endpointPath');
         final response = await http.post(uri, headers: headers, body: body).timeout(Duration(seconds: timeoutSeconds));
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          _activeBaseUrl = base;
-          return response;
-        }
+        _activeBaseUrl = base;
+        return response;
       } catch (_) {}
     }
     return null;
@@ -85,15 +130,22 @@ class ApiService {
 
   // Helper for resilient PATCH requests
   static Future<http.Response?> safePatch(String endpointPath, String body, {int timeoutSeconds = 4}) async {
-    final bases = _activeBaseUrl != null ? [_activeBaseUrl!, ...candidateBaseUrls] : candidateBaseUrls;
-    for (final base in bases) {
+    if (_activeBaseUrl != null) {
+      try {
+        final uri = Uri.parse('$_activeBaseUrl$endpointPath');
+        final response = await http.patch(uri, headers: headers, body: body).timeout(Duration(seconds: timeoutSeconds));
+        return response;
+      } catch (_) {
+        _activeBaseUrl = null;
+      }
+    }
+
+    for (final base in candidateBaseUrls) {
       try {
         final uri = Uri.parse('$base$endpointPath');
         final response = await http.patch(uri, headers: headers, body: body).timeout(Duration(seconds: timeoutSeconds));
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          _activeBaseUrl = base;
-          return response;
-        }
+        _activeBaseUrl = base;
+        return response;
       } catch (_) {}
     }
     return null;
@@ -101,21 +153,46 @@ class ApiService {
 
   // Helper for resilient DELETE requests
   static Future<http.Response?> safeDelete(String endpointPath, {int timeoutSeconds = 4}) async {
-    final bases = _activeBaseUrl != null ? [_activeBaseUrl!, ...candidateBaseUrls] : candidateBaseUrls;
-    for (final base in bases) {
+    if (_activeBaseUrl != null) {
+      try {
+        final uri = Uri.parse('$_activeBaseUrl$endpointPath');
+        final response = await http.delete(uri, headers: headers).timeout(Duration(seconds: timeoutSeconds));
+        return response;
+      } catch (_) {
+        _activeBaseUrl = null;
+      }
+    }
+
+    for (final base in candidateBaseUrls) {
       try {
         final uri = Uri.parse('$base$endpointPath');
         final response = await http.delete(uri, headers: headers).timeout(Duration(seconds: timeoutSeconds));
-        if (response.statusCode == 200) {
-          _activeBaseUrl = base;
-          return response;
-        }
+        _activeBaseUrl = base;
+        return response;
       } catch (_) {}
     }
     return null;
   }
 
   // ────── AUTH ENDPOINTS ──────
+
+  static Future<Map<String, dynamic>> sendOtp({required String phone}) async {
+    try {
+      final body = json.encode({'phone': phone});
+      final response = await safePost('/auth/send-otp', body);
+      if (response != null) {
+        final data = json.decode(response.body);
+        return {
+          'success': data['success'] == true,
+          'hasPassword': data['hasPassword'] == true,
+          'message': data['message'] ?? '',
+        };
+      }
+      return {'success': false, 'hasPassword': false, 'message': 'Cannot connect to server'};
+    } catch (e) {
+      return {'success': false, 'hasPassword': false, 'message': 'Network error: $e'};
+    }
+  }
 
   static Future<Map<String, dynamic>> verifyOtp({
     required String phone,
@@ -149,24 +226,55 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> demoLogin({required String role}) async {
+  static Future<Map<String, dynamic>> setPassword({
+    required String phone,
+    required String password,
+  }) async {
     try {
-      final body = json.encode({'role': role});
-      final response = await safePost('/auth/demo-login', body);
+      final body = json.encode({'phone': phone, 'password': password});
+      final response = await safePost('/auth/set-password', body);
+      if (response != null) {
+        final data = json.decode(response.body);
+        return {'success': data['success'] == true, 'message': data['message'] ?? ''};
+      }
+      return {'success': false, 'message': 'Cannot connect to server'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginWithPassword({
+    required String phone,
+    required String password,
+    required String role,
+  }) async {
+    try {
+      final body = json.encode({'phone': phone, 'password': password, 'role': role});
+      final response = await safePost('/auth/login-password', body);
       if (response != null) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           _authToken = data['token'];
           currentUser = data['user'];
+          final resultRole = data['role'] ?? role;
+          final doctorId = data['user']?['doctorId'] ?? data['doctorProfile']?['_id'] ?? '';
+          final doctorName = data['doctorProfile']?['name'] ?? data['user']?['name'] ?? '';
+          await saveSession(
+            token: data['token'],
+            role: resultRole,
+            user: Map<String, dynamic>.from(data['user'] ?? {}),
+            doctorId: doctorId,
+            doctorName: doctorName,
+          );
           return {
             'success': true,
-            'role': data['role'] ?? role,
+            'role': resultRole,
             'token': data['token'],
             'user': data['user'],
-            'isNewUser': data['isNewUser'] ?? false,
-            'profileComplete': data['profileComplete'] ?? true,
-            'doctorId': data['user']?['doctorId'] ?? data['doctorProfile']?['_id'] ?? '',
-            'doctorName': data['doctorProfile']?['name'] ?? data['user']?['name'] ?? '',
+            'isNewUser': false,
+            'profileComplete': data['profileComplete'] ?? false,
+            'doctorId': doctorId,
+            'doctorName': doctorName,
           };
         }
         return {'success': false, 'message': data['message'] ?? 'Login failed'};
@@ -396,15 +504,16 @@ class ApiService {
     required String patientPhone,
   }) async {
     try {
+      final user = currentUser ?? {};
       final body = json.encode({
         'sessionId': sessionId,
         'serialNumber': serialNumber,
-        'patientName': patientName,
-        'patientAge': patientAge,
-        'patientGender': patientGender,
-        'patientPhone': patientPhone,
+        'patientName': patientName.isNotEmpty ? patientName : (user['name'] ?? 'Patient'),
+        'patientAge': patientAge > 0 ? patientAge : (user['age'] ?? 28),
+        'patientGender': patientGender.isNotEmpty ? patientGender : (user['gender'] ?? 'Male'),
+        'patientPhone': patientPhone.isNotEmpty ? patientPhone : (user['phone'] ?? ''),
       });
-      final response = await safePost('/bookings/reserve', body);
+      final response = await safePost('/bookings/reserve', body, timeoutSeconds: 6);
       if (response != null) {
         final data = json.decode(response.body);
         if (response.statusCode == 200 || response.statusCode == 201) {
@@ -504,6 +613,51 @@ class ApiService {
     try {
       final response = await safePost('/doctors/admin/session', json.encode(sessionData));
       return response != null && (response.statusCode == 200 || response.statusCode == 201);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> adminDeleteDoctor(String doctorId) async {
+    try {
+      final response = await safeDelete('/doctors/admin/doctor/$doctorId');
+      return response != null && response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> adminDeleteUser(String userId) async {
+    try {
+      final response = await safeDelete('/doctors/admin/user/$userId');
+      return response != null && response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> adminUpdateBooking(String bookingId, Map<String, dynamic> updates) async {
+    try {
+      final response = await safePatch('/doctors/admin/booking/$bookingId', json.encode(updates));
+      return response != null && response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> adminDeleteBooking(String bookingId) async {
+    try {
+      final response = await safeDelete('/doctors/admin/booking/$bookingId');
+      return response != null && response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> adminUpdateUser(String userId, Map<String, dynamic> updates) async {
+    try {
+      final response = await safePatch('/doctors/admin/user/$userId', json.encode(updates));
+      return response != null && response.statusCode == 200;
     } catch (_) {
       return false;
     }

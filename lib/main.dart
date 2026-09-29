@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/booking_provider.dart';
-import 'views/auth/login_screen.dart';
+import 'views/auth/splash_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const SerialDoctorApp());
 }
 
@@ -21,7 +22,7 @@ class SerialDoctorApp extends StatelessWidget {
         title: 'SERIAL · Doctor Appointment App',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
-        home: const LoginScreen(),
+        home: const SplashScreen(),
       ),
     );
   }

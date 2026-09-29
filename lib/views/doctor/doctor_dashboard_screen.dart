@@ -221,10 +221,14 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.logout_rounded, color: Colors.white70),
-                onPressed: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                ),
+                onPressed: () async {
+                  await ApiService.clearSession();
+                  if (!context.mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
               ),
             ],
           ),

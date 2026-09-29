@@ -273,20 +273,19 @@ class _ManageAvailabilityScreenState extends State<ManageAvailabilityScreen> {
         const SizedBox(height: 16),
         _sectionTitle('Generate for the next'),
         const SizedBox(height: 8),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [2, 4, 8, 12].map((w) {
             final sel = _weeksAhead == w;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text('$w weeks'),
-                selected: sel,
-                onSelected: (_) => setState(() => _weeksAhead = w),
-                selectedColor: AppTheme.primary,
-                backgroundColor: AppTheme.cardDark,
-                labelStyle: TextStyle(color: sel ? Colors.white : Colors.grey[300], fontWeight: FontWeight.w600),
-                side: BorderSide(color: sel ? AppTheme.primaryBright : AppTheme.borderDark),
-              ),
+            return ChoiceChip(
+              label: Text('$w weeks'),
+              selected: sel,
+              onSelected: (_) => setState(() => _weeksAhead = w),
+              selectedColor: AppTheme.primary,
+              backgroundColor: AppTheme.cardDark,
+              labelStyle: TextStyle(color: sel ? Colors.white : Colors.grey[300], fontWeight: FontWeight.w600),
+              side: BorderSide(color: sel ? AppTheme.primaryBright : AppTheme.borderDark),
             );
           }).toList(),
         ),

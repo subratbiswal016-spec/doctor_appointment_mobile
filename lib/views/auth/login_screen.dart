@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/api_service.dart';
+import 'package:flutter/services.dart';
 import '../home/patient_shell_screen.dart';
 import '../doctor/doctor_dashboard_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
@@ -14,18 +15,25 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+enum _LoginStep { phone, otp, password, setPassword }
+
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
-  final _phoneController = TextEditingController(text: '9876543210');
-  final _otpController = TextEditingController(text: '123456');
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _adminPassController = TextEditingController();
-  bool _otpSent = false;
+
+  _LoginStep _step = _LoginStep.phone;
   bool _isLoading = false;
-  String _selectedRole = 'PATIENT'; // PATIENT or DOCTOR
+  String _selectedRole = 'PATIENT';
   bool _showAdminLogin = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
 
-  // Admin credentials (hardcoded single admin)
   static const String _adminPassword = 'admin123';
 
   @override
@@ -41,75 +49,156 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _animCtrl.dispose();
     _phoneController.dispose();
     _otpController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _adminPassController.dispose();
     super.dispose();
   }
 
-  void _handleSendOtp() {
+  void _handleSendOtp() async {
+    final phone = _phoneController.text.trim();
+    if (phone.length != 10) {
+      _showSnack('Please enter a valid 10-digit phone number.', isError: true);
+      return;
+    }
+
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _otpSent = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⚡ OTP Sent! Use demo OTP: 123456'),
-          backgroundColor: AppTheme.primary,
-        ),
-      );
-    });
+    final result = await ApiService.sendOtp(phone: phone);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      if (result['hasPassword'] == true) {
+        setState(() => _step = _LoginStep.password);
+        _showSnack('Welcome back! Enter your password.');
+      } else {
+        setState(() => _step = _LoginStep.otp);
+        _showSnack('OTP Sent! Check your phone.');
+      }
+    } else {
+      _showSnack(result['message'] ?? 'Failed to connect', isError: true);
+    }
   }
 
   void _handleVerifyOtp() async {
+    final otp = _otpController.text.trim();
+    if (otp.length != 6) {
+      _showSnack('Please enter a 6-digit OTP.', isError: true);
+      return;
+    }
+
     setState(() => _isLoading = true);
     final result = await ApiService.verifyOtp(
       phone: _phoneController.text.trim(),
-      otp: _otpController.text.trim(),
+      otp: otp,
       role: _selectedRole,
     );
     if (!mounted) return;
 
     if (result['success'] == true) {
-      _navigateToRole(result['role'] ?? _selectedRole, result);
+      setState(() {
+        _isLoading = false;
+        _step = _LoginStep.setPassword;
+      });
+      _showSnack('Verified! Now set a password for future logins.');
     } else {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Login failed'),
-          backgroundColor: AppTheme.colorBooked,
-        ),
+      _showSnack(result['message'] ?? 'Invalid OTP', isError: true);
+    }
+  }
+
+  void _handleSetPassword() async {
+    final pw = _passwordController.text.trim();
+    final confirm = _confirmPasswordController.text.trim();
+    if (pw.length < 4) {
+      _showSnack('Password must be at least 4 characters.', isError: true);
+      return;
+    }
+    if (pw != confirm) {
+      _showSnack('Passwords do not match.', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final result = await ApiService.setPassword(
+      phone: _phoneController.text.trim(),
+      password: pw,
+    );
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final loginResult = await ApiService.loginWithPassword(
+        phone: _phoneController.text.trim(),
+        password: pw,
+        role: _selectedRole,
       );
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (loginResult['success'] == true) {
+        _showSnack('Password set! Logging you in...');
+        _navigateToRole(loginResult['role'] ?? _selectedRole, loginResult);
+      } else {
+        _showSnack(loginResult['message'] ?? 'Login failed after setting password', isError: true);
+      }
+    } else {
+      setState(() => _isLoading = false);
+      _showSnack(result['message'] ?? 'Failed to set password', isError: true);
+    }
+  }
+
+  void _handlePasswordLogin() async {
+    final pw = _passwordController.text.trim();
+    if (pw.isEmpty) {
+      _showSnack('Please enter your password.', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final result = await ApiService.loginWithPassword(
+      phone: _phoneController.text.trim(),
+      password: pw,
+      role: _selectedRole,
+    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      _navigateToRole(result['role'] ?? _selectedRole, result);
+    } else {
+      _showSnack(result['message'] ?? 'Login failed', isError: true);
     }
   }
 
   void _handleAdminLogin() async {
     final pass = _adminPassController.text.trim();
     if (pass != _adminPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Invalid Admin Password'),
-          backgroundColor: AppTheme.colorBooked,
-        ),
-      );
+      _showSnack('Invalid Admin Password', isError: true);
       return;
     }
     setState(() => _isLoading = true);
-    final result = await ApiService.demoLogin(role: 'ADMIN');
+    final result = await ApiService.verifyOtp(
+      phone: '9999000001',
+      otp: '123456',
+      role: 'ADMIN',
+    );
     if (!mounted) return;
 
     if (result['success'] == true) {
       _navigateToRole('ADMIN', result);
     } else {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Admin login failed'),
-          backgroundColor: AppTheme.colorBooked,
-        ),
-      );
+      _showSnack(result['message'] ?? 'Admin login failed', isError: true);
     }
+  }
+
+  void _showSnack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? AppTheme.colorBooked : AppTheme.primary,
+      ),
+    );
   }
 
   void _navigateToRole(String role, Map<String, dynamic> data) {
@@ -117,9 +206,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final isNewUser = data['isNewUser'] == true;
     final userData = data['user'] ?? {};
 
-    // If new user or profile not complete -> go to profile setup
     if ((isNewUser || !profileComplete) && role.toUpperCase() != 'ADMIN') {
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ProfileSetupScreen(
@@ -144,9 +232,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       default:
         destination = const PatientShellScreen();
     }
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => destination),
+      (route) => false,
     );
   }
 
@@ -162,7 +251,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
-                // Logo
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
@@ -201,16 +289,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 Text(
                   _showAdminLogin
                       ? 'Admin login requires password.'
-                      : 'Select your role and enter phone to continue.',
+                      : _step == _LoginStep.setPassword
+                          ? 'Set a password for future logins.'
+                          : _step == _LoginStep.password
+                              ? 'Welcome back! Enter your password.'
+                              : 'Select your role and enter phone to continue.',
                   style: TextStyle(color: Colors.grey[400], fontSize: 14),
                 ),
                 const SizedBox(height: 24),
 
                 if (_showAdminLogin) ...[
-                  // ────── ADMIN LOGIN (password based) ──────
                   _buildAdminLoginSection(),
                 ] else ...[
-                  // ────── ROLE SELECTOR: Patient / Doctor ──────
                   Text(
                     'I AM A',
                     style: GoogleFonts.plusJakartaSans(
@@ -230,11 +320,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                   const SizedBox(height: 28),
 
-                  // ────── Phone / OTP Input ──────
-                  if (!_otpSent) ...[
+                  // ────── STEP: Phone entry ──────
+                  if (_step == _LoginStep.phone) ...[
                     TextField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       decoration: const InputDecoration(
                         labelText: 'Phone Number',
@@ -255,16 +349,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         child: _isLoading
                             ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                             : Text(
-                                'Get OTP as ${_selectedRole == 'PATIENT' ? 'Patient' : 'Doctor'} ➔',
+                                'Continue as ${_selectedRole == 'PATIENT' ? 'Patient' : 'Doctor'} ➤',
                                 style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
                               ),
                       ),
                     ),
-                  ] else ...[
+                  ],
+
+                  // ────── STEP: OTP (new user) ──────
+                  if (_step == _LoginStep.otp) ...[
                     TextField(
                       controller: _otpController,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(6),
+                      ],
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -273,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                       decoration: const InputDecoration(
                         labelText: 'Enter 6-Digit OTP',
-                        hintText: '123456',
+                        hintText: '------',
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -288,22 +389,168 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                         child: _isLoading
                             ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                            : const Text(
+                                'Verify OTP ➤',
+                                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _step = _LoginStep.phone;
+                        _otpController.clear();
+                      }),
+                      child: Text('← Change Phone Number', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                    ),
+                  ],
+
+                  // ────── STEP: Password (returning user) ──────
+                  if (_step == _LoginStep.password) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBright.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.primaryBright.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.phone_iphone, color: AppTheme.primaryBright, size: 20),
+                          const SizedBox(width: 10),
+                          Text(
+                            '+91 ${_phoneController.text.trim()}',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_rounded, color: AppTheme.primaryBright),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey[500],
+                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handlePasswordLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _selectedRole == 'DOCTOR' ? const Color(0xFF4DA6FF) : AppTheme.primaryBright,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                             : Text(
-                                'Verify & Enter as ${_selectedRole == 'PATIENT' ? 'Patient' : 'Doctor'} ➔',
+                                'Login as ${_selectedRole == 'PATIENT' ? 'Patient' : 'Doctor'} ➤',
                                 style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
                               ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     TextButton(
-                      onPressed: () => setState(() => _otpSent = false),
+                      onPressed: () => setState(() {
+                        _step = _LoginStep.phone;
+                        _passwordController.clear();
+                      }),
                       child: Text('← Change Phone Number', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
                     ),
                   ],
 
-                  const SizedBox(height: 32),
+                  // ────── STEP: Set Password (after first OTP verify) ──────
+                  if (_step == _LoginStep.setPassword) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A2A1A),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF43C07E).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF43C07E), size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Phone verified! Set a password so you don\'t need OTP next time.',
+                              style: TextStyle(color: Colors.grey[300], fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      decoration: InputDecoration(
+                        labelText: 'Create Password',
+                        prefixIcon: const Icon(Icons.lock_rounded, color: AppTheme.primaryBright),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey[500],
+                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirm,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.primaryBright),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey[500],
+                          ),
+                          onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleSetPassword,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF43C07E),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                            : const Text(
+                                'Set Password & Continue ➤',
+                                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                      ),
+                    ),
+                  ],
 
-                  // ────── Admin Login Link (small text at bottom) ──────
+                  const SizedBox(height: 32),
                   Center(
                     child: TextButton(
                       onPressed: () => setState(() => _showAdminLogin = true),
@@ -331,7 +578,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Admin icon header
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -419,7 +665,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       child: GestureDetector(
         onTap: () => setState(() {
           _selectedRole = role;
-          _otpSent = false;
+          if (_step != _LoginStep.phone && _step != _LoginStep.setPassword) {
+            _step = _LoginStep.phone;
+            _otpController.clear();
+            _passwordController.clear();
+          }
         }),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),

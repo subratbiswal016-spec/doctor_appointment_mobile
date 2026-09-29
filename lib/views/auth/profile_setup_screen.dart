@@ -41,16 +41,57 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   final List<String> _avatarChoices = [
     'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1594824813566-78a01170461c?auto=format&fit=crop&w=400&q=80',
+    'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=400&q=80',
     'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=400&q=80',
     'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&q=80',
   ];
 
   final _specialities = [
-    'Cardiologist', 'Dermatologist', 'General Physician', 'Pediatrician',
-    'Neurologist', 'Orthopedic', 'Gynecologist', 'ENT', 'Dentist',
-    'Psychiatrist', 'Urologist', 'Oncologist',
+    'General Physician',
+    'Cardiologist',
+    'Dermatologist',
+    'Pediatrician',
+    'Neurologist',
+    'Orthopedic',
+    'Gynecologist',
+    'ENT',
+    'Dentist',
+    'Psychiatrist',
+    'Urologist',
+    'Oncologist',
+    'Ophthalmologist',
+    'Pulmonologist',
+    'Gastroenterologist',
+    'Nephrologist',
+    'Endocrinologist',
+    'Rheumatologist',
+    'Hematologist',
+    'Plastic Surgeon',
+    'General Surgeon',
+    'Neurosurgeon',
+    'Cardiac Surgeon',
+    'Vascular Surgeon',
+    'Anesthesiologist',
+    'Radiologist',
+    'Pathologist',
+    'Physiotherapist',
+    'Ayurvedic',
+    'Homeopathic',
+    'Unani',
+    'Sexologist',
+    'Allergist',
+    'Diabetologist',
+    'Neonatologist',
+    'Geriatrician',
+    'Sports Medicine',
+    'Pain Management',
+    'Infectious Disease',
+    'Emergency Medicine',
+    'Palliative Care',
+    'Intensivist (ICU)',
+    'Forensic Medicine',
   ];
+  final _otherSpecialityCtrl = TextEditingController();
 
   bool get _isDoctor => widget.role == 'DOCTOR';
 
@@ -71,6 +112,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _clinicCtrl.dispose();
     _addrCtrl.dispose();
     _cityCtrl.dispose();
+    _otherSpecialityCtrl.dispose();
     super.dispose();
   }
 
@@ -137,7 +179,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       } else {
         destination = const PatientShellScreen();
       }
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => destination));
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => destination),
+        (route) => false,
+      );
     } else {
       setState(() => _isLoading = false);
       _showError(result['message'] ?? 'Failed to save profile');
@@ -319,17 +365,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
                 _buildLabel('Speciality'),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: _speciality,
-                  dropdownColor: AppTheme.cardDark,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.local_hospital_rounded, color: Color(0xFF4DA6FF)),
+                InkWell(
+                  onTap: _showSpecialityPicker,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.local_hospital_rounded, color: Color(0xFF4DA6FF)),
+                      suffixIcon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey),
+                    ),
+                    child: Text(
+                      _speciality,
+                      style: const TextStyle(fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  items: _specialities.map((s) =>
-                    DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis))
-                  ).toList(),
-                  onChanged: (val) { if (val != null) setState(() => _speciality = val); },
                 ),
                 const SizedBox(height: 14),
 
@@ -469,6 +518,186 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSpecialityPicker() {
+    final searchCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.cardDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final query = searchCtrl.text.toLowerCase();
+            final filtered = _specialities
+                .where((s) => s.toLowerCase().contains(query))
+                .toList();
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              maxChildSize: 0.9,
+              minChildSize: 0.4,
+              expand: false,
+              builder: (_, scrollCtrl) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[600],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Text(
+                        'Select Speciality',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        controller: searchCtrl,
+                        autofocus: true,
+                        onChanged: (_) => setSheetState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Search speciality...',
+                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF4DA6FF)),
+                          suffixIcon: searchCtrl.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () {
+                                    searchCtrl.clear();
+                                    setSheetState(() {});
+                                  },
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: AppTheme.bgDark,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppTheme.borderDark),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppTheme.borderDark),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ListView(
+                        controller: scrollCtrl,
+                        children: [
+                          ...filtered.map((s) {
+                            final isSelected = s == _speciality;
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(
+                                isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                color: isSelected ? const Color(0xFF4DA6FF) : Colors.grey[600],
+                                size: 20,
+                              ),
+                              title: Text(
+                                s,
+                                style: TextStyle(
+                                  color: isSelected ? const Color(0xFF4DA6FF) : Colors.white,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                              onTap: () {
+                                setState(() => _speciality = s);
+                                Navigator.pop(ctx);
+                              },
+                            );
+                          }),
+                          if (filtered.isEmpty && query.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Text(
+                                'No match found. Use "Other" below to add yours.',
+                                style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          const Divider(color: AppTheme.borderDark, height: 1),
+                          ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.edit_rounded, color: Colors.orangeAccent, size: 20),
+                            title: const Text('Other (type your speciality)', style: TextStyle(color: Colors.orangeAccent)),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _showCustomSpecialityDialog();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCustomSpecialityDialog() {
+    _otherSpecialityCtrl.clear();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Enter Your Speciality',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white),
+        ),
+        content: TextField(
+          controller: _otherSpecialityCtrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            hintText: 'e.g. Reproductive Medicine',
+            filled: true,
+            fillColor: AppTheme.bgDark,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderDark)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderDark)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final val = _otherSpecialityCtrl.text.trim();
+              if (val.isNotEmpty) {
+                setState(() => _speciality = val);
+              }
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4DA6FF),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Confirm', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

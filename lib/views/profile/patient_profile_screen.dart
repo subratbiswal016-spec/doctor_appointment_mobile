@@ -172,8 +172,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        ApiService.currentUser = null;
+                      onPressed: () async {
+                        await ApiService.clearSession();
+                        if (!context.mounted) return;
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(builder: (_) => const LoginScreen()),

@@ -17,6 +17,7 @@ class Doctor {
   final String about;
   final String email;
   final List<String> languages;
+  final bool isVerified;
   final double? distanceKm;
 
   Doctor({
@@ -38,6 +39,7 @@ class Doctor {
     this.about = '',
     this.email = '',
     this.languages = const [],
+    this.isVerified = true,
     this.distanceKm,
   });
 
@@ -61,6 +63,7 @@ class Doctor {
       about: json['about'] ?? '',
       email: json['email'] ?? '',
       languages: (json['languages'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      isVerified: json['isVerified'] ?? true,
       distanceKm: json['distanceKm'] != null ? (json['distanceKm']).toDouble() : null,
     );
   }
