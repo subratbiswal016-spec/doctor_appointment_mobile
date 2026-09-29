@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/doctor.dart';
 import '../../models/session.dart';
 import '../appointments/my_appointments_screen.dart';
+import '../appointments/widgets/appointment_ticket_dialog.dart';
 
 class BookingSuccessScreen extends StatelessWidget {
   final Doctor doctor;
@@ -155,6 +156,46 @@ class BookingSuccessScreen extends StatelessWidget {
 
               SizedBox(
                 width: double.infinity,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final appt = {
+                      'serialNumber': serialNumber,
+                      'status': 'CONFIRMED',
+                      'amount': amount,
+                      'patientName': patientName,
+                      '_id': paymentId,
+                      'doctorId': {
+                        'name': doctor.name,
+                        'speciality': doctor.speciality,
+                        'qualification': doctor.qualification,
+                        'clinicName': doctor.clinicName,
+                        'address': doctor.address,
+                        'city': doctor.city,
+                      },
+                      'sessionId': {
+                        'displayDate': session.displayDate,
+                        'startTime': session.startTime,
+                        'endTime': session.endTime,
+                      },
+                    };
+                    AppointmentTicketDialog.show(context, appt);
+                  },
+                  icon: const Icon(Icons.confirmation_number_outlined, color: AppTheme.primaryBright),
+                  label: const Text(
+                    'View & Download Ticket Pass (PDF)',
+                    style: TextStyle(color: AppTheme.primaryBright, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.primaryBright),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              SizedBox(
+                width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
                   onPressed: () {
@@ -168,7 +209,7 @@ class BookingSuccessScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   child: const Text(
-                    'View My Appointments & Prescriptions ➔',
+                    'Go to My Appointments ➔',
                     style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                 ),

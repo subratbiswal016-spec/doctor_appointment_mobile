@@ -18,7 +18,9 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
   List<Doctor> _doctors = [];
   bool _isLoading = true;
   String _selectedCategory = 'All';
+  String _selectedCity = 'All';
   final _searchController = TextEditingController();
+  final List<String> _cities = ['All', 'Chennai', 'Bengaluru', 'Kolkata', 'Bhubaneswar', 'Hyderabad'];
 
   List<String> _categories = [
     'All',
@@ -39,6 +41,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
     final docs = await ApiService.getDoctors(
       search: _searchController.text,
       speciality: _selectedCategory,
+      city: _selectedCity,
     );
     setState(() {
       _categories = categories;
@@ -219,7 +222,63 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+
+                  // City Quick-Filter Chips Bar
+                  SizedBox(
+                    height: 32,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      children: _cities.map((city) {
+                        final isSel = _selectedCity == city;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedCity = city;
+                              });
+                              _loadDoctors();
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isSel ? AppTheme.primaryWash : AppTheme.cardDark,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSel ? AppTheme.primaryBright : AppTheme.borderDark,
+                                  width: isSel ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  if (city != 'All')
+                                    Icon(
+                                      Icons.location_city_rounded,
+                                      size: 12,
+                                      color: isSel ? AppTheme.primaryBright : Colors.grey[400],
+                                    ),
+                                  if (city != 'All') const SizedBox(width: 4),
+                                  Text(
+                                    city == 'All' ? '📍 All Cities' : city,
+                                    style: TextStyle(
+                                      color: isSel ? AppTheme.primaryBright : Colors.grey[300],
+                                      fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
 
                   // Specialties Horizontal Scroll Bar
                   SingleChildScrollView(

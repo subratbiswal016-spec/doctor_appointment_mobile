@@ -14,7 +14,7 @@ class ApiService {
   // Candidate host URLs for Android Emulator, LAN IP, and Desktop/Web
   static List<String> get candidateBaseUrls {
     return [
-      'http://10.86.192.12:5000/api',
+      'http://192.168.0.220:5000/api',
       'http://10.0.2.2:5000/api',
       'http://localhost:5000/api',
       'http://127.0.0.1:5000/api',
@@ -229,9 +229,10 @@ class ApiService {
 
   // ────── DOCTOR ENDPOINTS ──────
 
-  static Future<List<Doctor>> getDoctors({String search = '', String speciality = 'All', double? lat, double? lng}) async {
+  static Future<List<Doctor>> getDoctors({String search = '', String speciality = 'All', String city = '', double? lat, double? lng}) async {
     try {
       var path = '/doctors?search=${Uri.encodeComponent(search)}&speciality=${Uri.encodeComponent(speciality)}';
+      if (city.isNotEmpty && city != 'All') path += '&city=${Uri.encodeComponent(city)}';
       if (lat != null && lng != null) path += '&lat=$lat&lng=$lng';
       final response = await safeGet(path);
       if (response != null && response.statusCode == 200) {

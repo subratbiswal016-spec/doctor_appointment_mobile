@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/api_service.dart';
 
+import 'widgets/appointment_ticket_dialog.dart';
+
 class MyAppointmentsScreen extends StatefulWidget {
   const MyAppointmentsScreen({super.key});
 
@@ -115,125 +117,128 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
-      child: Padding(
-        padding: const EdgeInsets.all(18.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Token # and Status badge
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryWash,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.primaryBright),
-                  ),
-                  child: Text(
-                    'TOKEN #${serial < 10 ? '0$serial' : serial}',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: AppTheme.primaryBright,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => AppointmentTicketDialog.show(context, appt),
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Token # and Status badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryWash,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryBright),
+                    ),
+                    child: Text(
+                      'TOKEN #${serial < 10 ? '0$serial' : serial}',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppTheme.primaryBright,
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // Doctor name
-            Text(
-              doctorName,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (speciality.isNotEmpty || clinicName.isNotEmpty)
-              Text(
-                '${speciality.isNotEmpty ? '$speciality · ' : ''}$clinicName',
-                style: TextStyle(color: Colors.grey[400], fontSize: 13),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            const SizedBox(height: 10),
-
-            // Date & Time
-            if (displayDate.isNotEmpty || timeSlot.isNotEmpty)
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 14, color: AppTheme.primaryBright),
-                  const SizedBox(width: 6),
-                  Expanded(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Text(
-                      '$displayDate${timeSlot.isNotEmpty ? ' ($timeSlot)' : ''}',
-                      style: const TextStyle(fontSize: 12, color: Colors.white70),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      status,
+                      style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
 
-            // Patient name
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.person_outline_rounded, size: 14, color: Colors.white54),
-                const SizedBox(width: 6),
+              // Doctor name
+              Text(
+                doctorName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (speciality.isNotEmpty || clinicName.isNotEmpty)
                 Text(
-                  'Booked for: $name',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                  '${speciality.isNotEmpty ? '$speciality · ' : ''}$clinicName',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
+              const SizedBox(height: 10),
 
-            const Divider(color: AppTheme.borderDark, height: 24),
-
-            // Fee
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Fee Paid: ₹ $amount',
-                  style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 13),
+              // Date & Time
+              if (displayDate.isNotEmpty || timeSlot.isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 14, color: AppTheme.primaryBright),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '$displayDate${timeSlot.isNotEmpty ? ' ($timeSlot)' : ''}',
+                        style: const TextStyle(fontSize: 12, color: Colors.white70),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-                if (isCompleted)
+
+              // Patient name
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(Icons.person_outline_rounded, size: 14, color: Colors.white54),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Booked for: $name',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                  ),
+                ],
+              ),
+
+              const Divider(color: AppTheme.borderDark, height: 24),
+
+              // Fee & Ticket Action Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Fee Paid: ₹ $amount',
+                    style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 13),
+                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryWash,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.primaryBright.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryBright.withValues(alpha: 0.5)),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle_rounded, size: 14, color: AppTheme.primaryBright),
-                        const SizedBox(width: 4),
+                        Icon(Icons.confirmation_number_outlined, size: 14, color: AppTheme.primaryBright),
+                        SizedBox(width: 6),
                         Text(
-                          'Visit Complete',
-                          style: TextStyle(color: AppTheme.primaryBright, fontWeight: FontWeight.bold, fontSize: 11),
+                          'View Ticket ➔',
+                          style: TextStyle(color: AppTheme.primaryBright, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,4 @@
-# serial_doctor_app
+# doctor_appointment_mobile
 
 A new Flutter project.
 

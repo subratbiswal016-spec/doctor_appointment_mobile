@@ -36,6 +36,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   List<Doctor> _doctors = [];
   List<String> _categories = ['All'];
   String _selectedCategory = 'All';
+  String _selectedCity = 'All';
+  final List<String> _cities = ['All', 'Chennai', 'Bengaluru', 'Kolkata', 'Bhubaneswar', 'Hyderabad'];
   bool _loadingDoctors = false;
 
   @override
@@ -72,8 +74,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     setState(() => _loadingDoctors = true);
     final cats = await ApiService.getSpecialities();
     final docs = await ApiService.getDoctors(
-      search: _searchController.text, speciality: _selectedCategory,
-      lat: _lat, lng: _lng,
+      search: _searchController.text,
+      speciality: _selectedCategory,
+      city: _selectedCity,
+      lat: _lat,
+      lng: _lng,
     );
     if (mounted) setState(() { _categories = cats; _doctors = docs; _loadingDoctors = false; });
   }
@@ -128,9 +133,34 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   };
 
   void _applyLocation({double? lat, double? lng, required String label}) {
-    setState(() { _lat = lat; _lng = lng; _locationLabel = label; });
-    Navigator.pop(context); // close the sheet
+    String derivedCity = 'All';
+    final lower = label.toLowerCase();
+    if (lower.contains('chennai')) {
+      derivedCity = 'Chennai';
+    } else if (lower.contains('bengaluru') || lower.contains('bangalore')) {
+      derivedCity = 'Bengaluru';
+    } else if (lower.contains('kolkata') || lower.contains('howrah')) {
+      derivedCity = 'Kolkata';
+    } else if (lower.contains('bhubaneswar') || lower.contains('cuttack') || lower.contains('odisha')) {
+      derivedCity = 'Bhubaneswar';
+    } else if (lower.contains('hyderabad') || lower.contains('secunderabad')) {
+      derivedCity = 'Hyderabad';
+    }
+
+    setState(() {
+      _lat = lat;
+      _lng = lng;
+      _locationLabel = label;
+      if (derivedCity != 'All') {
+        _selectedCity = derivedCity;
+      }
+    });
+
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context); // close the sheet
+    }
     _loadHospitals();
+    _loadDoctors();
   }
 
   Future<void> _useGpsAgain(void Function(void Function()) sheetSetState) async {
@@ -420,7 +450,68 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
+          // City Quick-Filter Chips Bar
+          SizedBox(
+            height: 32,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              children: _cities.map((city) {
+                final isSel = _selectedCity == city;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedCity = city;
+                        if (_selectedCity != 'All') {
+                          _locationLabel = _selectedCity;
+                        }
+                      });
+                      if (_tab == 0) {
+                        _loadHospitals();
+                      } else {
+                        _loadDoctors();
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSel ? AppTheme.primaryWash : AppTheme.cardDark,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSel ? AppTheme.primaryBright : AppTheme.borderDark,
+                          width: isSel ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          if (city != 'All')
+                            Icon(
+                              Icons.location_city_rounded,
+                              size: 12,
+                              color: isSel ? AppTheme.primaryBright : Colors.grey[400],
+                            ),
+                          if (city != 'All') const SizedBox(width: 4),
+                          Text(
+                            city == 'All' ? '📍 All Cities' : city,
+                            style: TextStyle(
+                              color: isSel ? AppTheme.primaryBright : Colors.grey[300],
+                              fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
           // Toggle
           Container(
             decoration: BoxDecoration(

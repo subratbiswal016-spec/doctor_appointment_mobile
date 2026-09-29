@@ -27,27 +27,49 @@ class _PatientShellScreenState extends State<PatientShellScreen> {
       backgroundColor: AppTheme.bgDark,
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppTheme.surfaceDark,
-          border: Border(top: BorderSide(color: AppTheme.borderDark)),
+          border: const Border(top: BorderSide(color: AppTheme.borderDark, width: 1.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: SafeArea(
           top: false,
-          child: BottomNavigationBar(
-            currentIndex: _index,
-            onTap: (i) => setState(() => _index = i),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppTheme.primaryBright,
-            unselectedItemColor: Colors.grey[500],
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-            unselectedLabelStyle: const TextStyle(fontSize: 12),
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore_rounded), label: 'Discover'),
-              BottomNavigationBarItem(icon: Icon(Icons.confirmation_number_outlined), activeIcon: Icon(Icons.confirmation_number_rounded), label: 'Appointments'),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), activeIcon: Icon(Icons.person_rounded), label: 'Profile'),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: BottomNavigationBar(
+              currentIndex: _index,
+              onTap: (i) => setState(() => _index = i),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: AppTheme.primaryBright,
+              unselectedItemColor: Colors.grey[500],
+              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5),
+              unselectedLabelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.explore_outlined),
+                  activeIcon: Icon(Icons.explore_rounded, color: AppTheme.primaryBright),
+                  label: 'Discover',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.confirmation_number_outlined),
+                  activeIcon: Icon(Icons.confirmation_number_rounded, color: AppTheme.primaryBright),
+                  label: 'Appointments',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline_rounded),
+                  activeIcon: Icon(Icons.person_rounded, color: AppTheme.primaryBright),
+                  label: 'Profile',
+                ),
+              ],
+            ),
           ),
         ),
       ),

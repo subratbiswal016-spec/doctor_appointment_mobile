@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color primary = Color(0xFF0E8A76);
-  static const Color primaryBright = Color(0xFF33B79E);
-  static const Color primaryWash = Color(0xFF12312A);
-  
-  static const Color bgDark = Color(0xFF091312);
-  static const Color surfaceDark = Color(0xFF11201D);
-  static const Color cardDark = Color(0xFF182B27);
-  static const Color borderDark = Color(0xFF233B36);
+  // Brand Colors - Deep Sapphire & Electric Cyan / Teal
+  static const Color primary = Color(0xFF00B4DB);
+  static const Color primaryBright = Color(0xFF00F2FE);
+  static const Color primaryWash = Color(0xFF0D2838);
+  static const Color accentGradientStart = Color(0xFF00F2FE);
+  static const Color accentGradientEnd = Color(0xFF4FACFE);
 
-  static const Color colorAvailable = Color(0xFF43C07E);
-  static const Color colorHeld = Color(0xFFE0AE4E);
-  static const Color colorBooked = Color(0xFFE27462);
+  // Surface & Background Colors
+  static const Color bgDark = Color(0xFF0A0E17);
+  static const Color surfaceDark = Color(0xFF131924);
+  static const Color cardDark = Color(0xFF1A2232);
+  static const Color borderDark = Color(0xFF263348);
+  static const Color borderLightGlow = Color(0xFF384A68);
+
+  // Status Token Colors
+  static const Color colorAvailable = Color(0xFF10B981); // Emerald
+  static const Color colorHeld = Color(0xFFF59E0B);      // Amber
+  static const Color colorBooked = Color(0xFFEF4444);    // Crimson
 
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
@@ -23,7 +29,6 @@ class AppTheme {
       primary: primaryBright,
       secondary: primary,
       surface: surfaceDark,
-      background: bgDark,
     ),
     fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
     appBarTheme: AppBarTheme(
@@ -38,26 +43,28 @@ class AppTheme {
       ),
     ),
     cardTheme: CardThemeData(
-      color: surfaceDark,
-      elevation: 4,
+      color: cardDark,
+      elevation: 6,
+      shadowColor: Colors.black.withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: borderDark),
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: borderDark, width: 1.2),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: cardDark,
+      fillColor: surfaceDark,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: borderDark),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: borderDark),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: primaryBright, width: 2),
       ),
     ),
