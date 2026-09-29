@@ -340,8 +340,11 @@ class ApiService {
   static Future<List<Doctor>> getDoctors({String search = '', String speciality = 'All', String city = '', double? lat, double? lng}) async {
     try {
       var path = '/doctors?search=${Uri.encodeComponent(search)}&speciality=${Uri.encodeComponent(speciality)}';
-      if (city.isNotEmpty && city != 'All') path += '&city=${Uri.encodeComponent(city)}';
-      if (lat != null && lng != null) path += '&lat=$lat&lng=$lng';
+      if (city.isNotEmpty && city != 'All') {
+        path += '&city=${Uri.encodeComponent(city)}';
+      } else if (lat != null && lng != null) {
+        path += '&lat=$lat&lng=$lng';
+      }
       final response = await safeGet(path);
       if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
